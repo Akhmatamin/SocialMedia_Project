@@ -1,13 +1,17 @@
 from http.client import HTTPResponse
 
 from django.shortcuts import render, get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets, generics, status
+from rest_framework.decorators import permission_classes
 from rest_framework.generics import CreateAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.filters import SearchFilter,OrderingFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from .filters import UserProfileFilter, HashtagFilter
 from .models import *
 from .serializer import *
 from django.db.models import Count
@@ -43,6 +47,19 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return UserProfile.objects.filter(id=self.request.user.id)
 
+class UsersListAPIView(generics.ListAPIView):
+    queryset = UserProfile.objects.all()
+    serializer_class = UsernameSerializer
+    filter_backends = [DjangoFilterBackend,SearchFilter,OrderingFilter]
+    filterset_class = UserProfileFilter
+    search_fields = ['username','bio']
+    ordering_fields = ['id']
+
+
+class UsersDetailAPIVIew(generics.RetrieveAPIView):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserDetailSerializer
+
 
 class FollowerViewSet(viewsets.ModelViewSet):
     queryset = Follow.objects.all()
@@ -71,10 +88,19 @@ class PostAPIView(generics.ListCreateAPIView):
 class HashtagViewSet(viewsets.ModelViewSet):
     queryset = Hashtag.objects.all()
     serializer_class = HashtagSerializer
+    filter_backends = [DjangoFilterBackend,SearchFilter,OrderingFilter]
+    filterset_class = HashtagFilter
+    search_fields = ['hashtag']
+
 
 
 class PostCommentAPIView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAuthenticated()]
+        return [AllowAny()]
 
     def get_queryset(self):
         post_id = self.kwargs['pk']
@@ -106,6 +132,7 @@ class PostLikeAPIView(APIView):
 class UsersLikedAPIView(generics.ListAPIView):
     serializer_class = UserLiked
 
+
     def get_queryset(self):
         post_id = self.kwargs['pk']
         return UserProfile.objects.filter(postlike__post_id=post_id).distinct().select_related('user')
@@ -113,6 +140,7 @@ class UsersLikedAPIView(generics.ListAPIView):
 
 
 class StoryViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
     queryset = Story.objects.all()
     serializer_class = StorySerializer
 

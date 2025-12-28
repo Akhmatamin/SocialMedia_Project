@@ -44,7 +44,29 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UsernameSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ['id','username','image']
+        fields = ['id','username','checkmark','image']
+
+class ContentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostMedia
+        fields = ['content']
+
+class PostListSerializer(serializers.ModelSerializer):
+    media_post = ContentSerializer(read_only=True, many=True)
+    class Meta:
+        model = Post
+        fields = ['media_post']
+
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    user_post = PostListSerializer(many=True, read_only=True)
+    posts_count = serializers.IntegerField(read_only=True,source='user_post.count')
+    followers_count = serializers.IntegerField(read_only=True,source='followers.count')
+    followings_count = serializers.IntegerField(read_only=True,source='followings.count')
+    class Meta:
+        model = UserProfile
+        fields = ['id','username','image','bio','website',
+                  'checkmark','followers_count','followings_count','posts_count','user_post']
 
 class FollowersSerializer(serializers.ModelSerializer):
     follower = UsernameSerializer(read_only=True)
@@ -53,21 +75,12 @@ class FollowersSerializer(serializers.ModelSerializer):
         model = Follow
         fields = ['follower', 'following']
 
-class ContentSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PostMedia
-        fields = ['content']
+
 
 class HashtagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Hashtag
         fields = ['hashtag']
-
-class PostListSerializer(serializers.ModelSerializer):
-    media_post = ContentSerializer(read_only=True, many=True)
-    class Meta:
-        model = Post
-        fields = ['media_post']
 
 
 class PostDetailSerializer(serializers.ModelSerializer):
@@ -91,7 +104,7 @@ class CommentSerializer(serializers.ModelSerializer):
 class UserLiked(serializers.ModelSerializer):
     user = UsernameSerializer(read_only=True)
     class Meta:
-        model: PostLike
+        model = PostLike
         fields = ['user','created_at']
 
 class StorySerializer(serializers.ModelSerializer):

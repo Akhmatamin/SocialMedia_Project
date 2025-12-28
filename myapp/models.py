@@ -13,13 +13,24 @@ class UserProfile(AbstractUser):
     date_registered = models.DateTimeField(auto_now_add=True)
     public_account = models.BooleanField(default=True)
 
+    @property
+    def followers_count(self):
+        return self.followers.count()
+
+    @property
+    def followings_count(self):
+        return self.followings.count()
+
+    @property
+    def posts_count(self):
+        return self.user_post.count()
 
     def __str__(self):
         return self.username
 
 class Follow(models.Model):
-    follower = models.ForeignKey(UserProfile, on_delete=models.CASCADE,related_name='follower_username')
-    following = models.ForeignKey(UserProfile, on_delete=models.CASCADE,related_name='following_username')
+    follower = models.ForeignKey(UserProfile, on_delete=models.CASCADE,related_name='followings')
+    following = models.ForeignKey(UserProfile, on_delete=models.CASCADE,related_name='followers')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -42,7 +53,7 @@ class Post(models.Model):
         ('Public', 'Public'),
         ('Private', 'Private'),
     )
-    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE,related_name='post_username')
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE,related_name='user_post')
     description = models.TextField(null=True,blank=True)
     hashtags = models.ManyToManyField(Hashtag,related_name='hashtag_post')
     created_at = models.DateTimeField(auto_now_add=True)
